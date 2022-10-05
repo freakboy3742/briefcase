@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3.0.2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
@@ -36,11 +36,11 @@ jobs:
         - 'package'
     steps:
     # Check out main; needed for towncrier comparisons.
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
         ref: main
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
     - name: Set up Python
@@ -61,7 +61,7 @@ jobs:
     needs: beefore
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
     - name: Set up Python
@@ -93,7 +93,7 @@ jobs:
       matrix:
         python-version: ['3.8', '3.10', '3.11.0-alpha - 3.11.0']
     steps:
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -125,7 +125,7 @@ jobs:
         platform: ['macos-latest', 'windows-latest']
     runs-on: ${{ matrix.platform }}
     steps:
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
     - name: Set up Python
@@ -185,7 +185,7 @@ jobs:
           ${{ matrix.briefcase-data-dir }}
           ${{ matrix.pip-cache-dir }}
           ${{ matrix.docker-cache-dir }}
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.1.0
       with:
         fetch-depth: 0
     - name: Set up Python
