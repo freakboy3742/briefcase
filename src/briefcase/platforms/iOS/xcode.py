@@ -373,6 +373,7 @@ class iOSXcodeCreateCommand(iOSXcodePassiveMixin, CreateCommand):
             pip_kwargs={
                 "env": {
                     "PYTHONPATH": str(device_platform_site),
+                    "PIP_REQUIRE_VIRTUALENV": None,
                 },
             },
         )
@@ -390,6 +391,7 @@ class iOSXcodeCreateCommand(iOSXcodePassiveMixin, CreateCommand):
             pip_kwargs={
                 "env": {
                     "PYTHONPATH": str(simulator_platform_site),
+                    "PIP_REQUIRE_VIRTUALENV": None,
                 },
             },
         )
