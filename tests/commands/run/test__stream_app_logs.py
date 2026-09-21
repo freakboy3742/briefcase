@@ -293,6 +293,101 @@ def test_run_app_failure(run_command, first_app):
     assert filter_func.exit_filter.regex.pattern == LogFilter.DEFAULT_EXIT_REGEX
 
 
+def test_run_app_reported_success_overrides_process_exit_status(
+    run_command,
+    first_app,
+):
+    """If the app reports a successful exit, that overrides a non-zero process exit
+    status.
+
+    This is the scenario in beeware/briefcase#2969: the app reports success via the exit
+    sentinel, but is forcibly terminated by Briefcase before it manages to exit on its
+    own (e.g. because GUI toolkit teardown is slow). On Windows, that forced termination
+    itself produces an exit status of 1, which must not be mistaken for the app failing.
+    """
+    popen = mock.MagicMock()
+    # The process' own exit status disagrees with what the app reported; this
+    # simulates Briefcase's own forced termination producing a status of 1.
+    popen.poll = mock.MagicMock(return_value=1)
+    clean_filter = mock.MagicMock()
+    stop_func = mock.MagicMock()
+    run_command.tools.subprocess.stream_output = mock.MagicMock()
+
+    # The app reported a successful exit via the sentinel.
+    def mock_stream_output(label, popen_process, filter_func, **kwargs):
+        filter_func.returncode = 0
+
+    run_command.tools.subprocess.stream_output.side_effect = mock_stream_output
+
+    # No error is raised; the app's own report of success takes priority.
+    run_command._stream_app_logs(
+        first_app,
+        popen=popen,
+        clean_filter=clean_filter,
+        clean_output=False,
+        stop_func=stop_func,
+    )
+
+
+def test_run_app_reported_failure_overrides_process_exit_status(
+    run_command,
+    first_app,
+):
+    """If the app reports a failure exit code, that is used even if the process exit
+    status disagrees."""
+    popen = mock.MagicMock()
+    # The process happened to exit cleanly, but the app reported failure.
+    popen.poll = mock.MagicMock(return_value=0)
+    clean_filter = mock.MagicMock()
+    stop_func = mock.MagicMock()
+    run_command.tools.subprocess.stream_output = mock.MagicMock()
+
+    def mock_stream_output(label, popen_process, filter_func, **kwargs):
+        filter_func.returncode = 42
+
+    run_command.tools.subprocess.stream_output.side_effect = mock_stream_output
+
+    with pytest.raises(
+        BriefcaseCommandError,
+        match=r"Problem running app first \(return code 42\)\.",
+    ):
+        run_command._stream_app_logs(
+            first_app,
+            popen=popen,
+            clean_filter=clean_filter,
+            clean_output=False,
+            stop_func=stop_func,
+        )
+
+
+def test_run_app_no_sentinel_falls_back_to_process_exit_status(
+    run_command,
+    first_app,
+):
+    """If the app never reports an exit code, the process' exit status is used, as
+    before."""
+    popen = mock.MagicMock()
+    popen.poll = mock.MagicMock(return_value=7)
+    clean_filter = mock.MagicMock()
+    stop_func = mock.MagicMock()
+    run_command.tools.subprocess.stream_output = mock.MagicMock()
+
+    # The app never printed the exit sentinel; filter_func.returncode stays at its
+    # default value of None.
+
+    with pytest.raises(
+        BriefcaseCommandError,
+        match=r"Problem running app first \(return code 7\)\.",
+    ):
+        run_command._stream_app_logs(
+            first_app,
+            popen=popen,
+            clean_filter=clean_filter,
+            clean_output=False,
+            stop_func=stop_func,
+        )
+
+
 def test_run_app_log_stream_stream_failure(run_command, first_app):
     """If a log stream returns an error code, the log filter requires it is ignored."""
     popen = mock.MagicMock()

@@ -206,9 +206,25 @@ class RunAppMixin:
                         f"(log stream return code {log_filter.returncode})."
                     )
             else:
-                # If we're monitoring an actual app (not just a log stream),
-                # and the app didn't exit cleanly, surface the error to the user.
-                if (status_code := popen.poll()) != 0:
+                # If we're monitoring an actual app (not just a log stream), and the
+                # app reported its own exit code via the exit sentinel, that value is
+                # authoritative and takes priority over the process' exit status.
+                #
+                # Once the exit sentinel is seen, LogFilter gives the app a brief
+                # grace period to exit on its own; if it doesn't, Briefcase forcibly
+                # terminates it. That forced termination can itself produce a
+                # non-zero exit status that has nothing to do with whether the app
+                # actually succeeded - on Windows in particular, terminating a
+                # process reports an exit status of 1, indistinguishable from the
+                # app having failed on its own. Falling back to the process' exit
+                # status is only correct for apps that never report their own exit
+                # code at all.
+                if log_filter.returncode is not None:
+                    status_code = log_filter.returncode
+                else:
+                    status_code = popen.poll()
+
+                if status_code != 0:
                     raise BriefcaseCommandError(
                         f"Problem running app {app.app_name} "
                         f"(return code {status_code})."
